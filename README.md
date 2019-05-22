@@ -15,68 +15,53 @@ Table of Contents
       * [Create a regular user](#create-a-regular-user)
       * [Setup power saving](#setup-power-saving)
       * [Get X11 Working](#get-x11-working)
-      * [Neovim and Shell Setup](#neovim-and-shell-setup)
       * [Setup my dot files, includes x11, nvim and zsh configs](#setup-my-dot-files-includes-x11-nvim-and-zsh-configs)
-      * [Start LightDM](#start-lightdm)
       * [Make Pacman faster](#make-pacman-faster)
       * [Setup the Linux Console](#setup-the-linux-console)
       * [Configure the Trackpad](#configure-the-trackpad)
       * [Hibernate on Low Battery](#hibernate-on-low-battery)
       * [Time Sync](#time-sync)
-      * [Setup lightdm and slick-greeter](#setup-lightdm-and-slick-greeter)
       * [Make Sound Work](#make-sound-work)
       * [Make the Volume and Screen Brighness Buttons Work](#make-the-volume-and-screen-brighness-buttons-work)
-      * [Install a Decent Theme for refind](#install-a-decent-theme-for-refind)
-      * [Clipbard Manager](#clipboard-manager)
-      * [Other Packages](#other-packages)
       * [TODO](#todo)
 
 # Arch Install Notes
-Installing Arch on the Huawei MateBook Pro X with Disk Encryption.
+Installing Arch Linux on the Huawei MateBook Pro X 2019 with Full Disk Encryption.
 
-This was done with a new Huawei MateBook Pro X Intel Core i7-8550U 
-1.8GHz, 16GB RAM, 512GB SSD. Delivered on 2018/10/08.
-
-I've run through this install twice now, and updated/reorganized
-this document a bit on the second pass.
+This was done with a new Huawei MateBook Pro X 2019 Intel Core i7-8565U, 8GB RAM, 512GB SSD. Delivered on 2019/05/19.
 
 ## Getting Started
 I booted into Windows 10 once, and let it go through it's whole setup
 only so I could update the BIOS.
 
-Mine shipped with BIOS version 1.17, and I noticed 1.18 was available
-on the [Huawei Download Page](https://consumer.huawei.com/us/support/pc/matebook-x-pro/) 
-so I installed that from Windows 10, before booting from the Arch ISO.
+In the future BIOS updates can be done using [the following method](https://github.com/nekr0z/linux-on-huawei-matebook-13-2019#bios-updates).
+
+Note that it would maybe be safer (no messing up with UEFI boot record) to use a Win2Go USB key to update BIOS.
+
+Will report after my personal tries.
 
 # Booting into the Base Install
 
 ## Make an Arch Boot USB Key
 Download the [Arch ISO](https://www.archlinux.org/download/)
 
-I burned it to a [UBS Key](https://wiki.archlinux.org/index.php/USB_flash_installation_media#In_macOS) 
-on macOS like this:
+I burned it to a [UBS Key](https://wiki.archlinux.org/index.php/USB_flash_installation_media) like this:
 
 ```
-$ diskutil unmountDisk /dev/disk2
-$ sudo dd if=archlinux-2018.10.01-x86_64.iso of=/dev/rdisk2 bs=1m
+$ sudo dd bs=4M if=path/to/archlinux.iso of=/dev/sdx status=progress oflag=sync
+
 ```
+
+If on Windows you can use [Rufus](http://rufus.ie/) which worked great everytimes I tried.
+
 ## Boot from USB
 
-To access the Boot menu, first disable Secure Boot in the BIOS. I've read
-that not everyone had to do this, but I couldn't get the boot menu to 
-show up until I did this.
+To access the Boot menu, first disable Secure Boot in the BIOS (Enter with <kbd>F12</kbd>). 
 
-Hold down F2 while booting to enter the BIOS.
+`Security Setting > Secure Boot > Disable`
 
-```
-Security Setting -> Secure Boot
-    Set to Disable
-EXIT
-    Save and Exit.
+Then hold down <kbd>F2</kbd> while booting to enter the BIOS device selection and choose your Arch USB.
 
-Hold down F12 at boot to enter the boot menu
-    Chose EFI USB Device
-````
 
 ## Make Fonts Readable and Get Online
 
@@ -86,9 +71,6 @@ later:
 `# setfont latarcyrheb-sun32`
 
 Most of this next part is from the [Arch Install Guide](https://wiki.archlinux.org/index.php/Installation_guide)
-
-To get WiFi working chose the wireless network. We'll change
-how this is configured later, but this works for now.
 
 `# wifi-menu` 
 
@@ -102,44 +84,17 @@ Update the system clock
 
 ## Partition and Format
 
-First we wipe the drive, this will destroy any existing data and partitions,
-overwriting all data with randomness.
-
 This install will use full disk encryption, with the exception of the EFI
 boot partition. 
 
-Wipe the drive following the [dm-crypt Drive Wipe instructions](https://wiki.archlinux.org/index.php/Dm-crypt/Drive_preparation#dm-crypt_wipe_on_an_empty_disk_or_partition)
+https://gist.github.com/heppu/6e58b7a174803bc4c43da99642b6094b
 
-`# cryptsetup open --type plain -d /dev/urandom /dev/nvme0n1 to_be_wiped`
+@todo
 
-Verify that the new device exists:
-
-`$ lsblk`
-
-Now wipe it with zeros, which should be turned into apparent randomness on
-disk since this is an encrypted drive.
-
-`# dd if=/dev/zero of=/dev/mapper/to_be_wiped bs=1M status=progress`
-
-This took about 20 minutes to run.
-
-Close the temporary container
-
-`# cryptsetup close to_be_wiped`
-
-Partition and create a 512MB fat32 partition of type 'EFI System'. 
-I used cfdisk to create the parition. I made a 220GB partition 
-with type 'Linux filesystem' for Arch. The rest will be reserved for future
-OS installs.
-
-Format the EFI/boot volume:
-
-`# mkfs.fat -F32 /dev/nvme0n1`
 
 ## Setup Disk Encryption
 I chose the realtively simple LVM on LUKS setup combining instructions from:
 [Encrypting_an_entire_system](https://wiki.archlinux.org/index.php/Dm-crypt/Encrypting_an_entire_system#LVM_on_LUKS)
-and found a few more hints at this [Gist](https://gist.github.com/heppu/6e58b7a174803bc4c43da99642b6094b).
 
 There will be a single LUKS2 volume with LVM on top. LVM will then divide
 that volume into root, home and swap.
@@ -217,7 +172,7 @@ them
 
 Set a hostname
 
-`# echo archbook >> /etc/hostname`
+`# echo marchbook >> /etc/hostname`
 
 ## Make the system bootable
 
@@ -226,54 +181,37 @@ we add to our boot loader config.
 
 `# pacman -S intel-ucode`
 
-Next setup rEFInd, it's themable and looks much nicer than grub or 
-systemd-boot
+Next setup systemd-boot
 
-```
-# pacman -S refind-efi parted sbsigntools imagemagick
-# refind-install
-```
+@todo
 
-Get the encrypted volume UUID for use in the rEFInd config.
+Get the encrypted volume UUID for use in the systemd-boot config.
 
 `# blkid /dev/nvme0n1p2`
 
-Add a menu entry for Arch, while not strictly necessary, it makes some nice 
-icons show up and gives us some submenus. 
+Add a menu entry for Arch and configure the loader :
 
-Plase this into `/boot/EFI/refind/refind.conf`
-
-```
-use_graphics_for linux
-...
-showtools shell, memtest, gdisk, mok_tool, about, shutdown, reboot, firmware, fwupdate
-...
-scanfor manual
-...
-menuentry "Arch Linux" {
-    icon     /EFI/refind/icons/os_arch.png
-    volume   "Arch Linux"
-    loader   /vmlinuz-linux
-    initrd   /initramfs-linux.img
-    options  "cryptdevice=UUID=<YOUR-PARTITION-UUID>:lvm:allow-discards resume=/dev/mapper/archvg-swap root=/dev/mapper/archvg-root initrd=/intel-ucode.img rw quiet splash"
-    submenuentry "Boot using fallback initramfs" {
-        initrd /initramfs-linux-fallback.img
-    }
-    submenuentry "Boot to terminal" {
-        add_options "systemd.unit=multi-user.target"
-    }
-}
-```
-
-Edit `/etc/mkinitcpio.conf` and add encrypt, lvm2, and resume support, the 
-postion in the HOOKS line matters:
+`# vim /boot/loader/loader.conf`
 
 ```
-MODULES=(ext4)
-...
-...
-...
-HOOKS=(base udev autodetect modconf block encrypt lvm2 resume filesystems keyboard fsck)
+timeout 0
+default arch
+entries 0
+```
+
+`# vim /boot/loader/entries/arch.conf`
+
+```
+title	Arch Linux
+linux /vmlinuz-linux
+initrd	/initramfs-linux.img
+options cryptdevice=UUID=<your partition UUID>:lvm:allow-discards resume=/dev/mapper/S3V0-swap root=/dev/mapper/S3V0-root initrd=/intel-ucode.img rw
+```
+
+Add the `keyboard`, `encrypt` and `lvm2` hooks to `/etc/mkinitcpio.conf`: 
+
+```
+HOOKS=(base udev autodetect keyboard keymap consolefont modconf block encrypt lvm2 filesystems fsck)
 ```
 
 Regnerate initramfs
@@ -302,18 +240,10 @@ later.
 
 `# wifi-menu`
 
-Install and setup etckeeper
-```
-# pacman -S etckeeper
-# cd /etc
-# etckeeper init
-# etckeeper commit
-```
-
 ## Create a regular user
 ```
-# useradd -G wheel -m kelp
-# passwd kelp
+# useradd -G wheel -m hugo
+# passwd hugo
 ```
 
 Then log out and switch to that user.
@@ -327,36 +257,24 @@ Enable TLP for powersaving
 # systemctl enable tlp-sleep.service
 # systemctl mask systemd-rfkill.service
 # systemctl mask systemd-rfkill.socket
-# systemctl enable NetworkManager-dispatcher.service
 ```
 
 Install ethtool, lsb-release and smartmontools at the suggestion of tlp-stat
 
 `# pacman -S ethtool lsb-release smartmontools`
 
-Get networking to come up automatically
+Get networking to come up automatically with `netctl`
 ```
-# systemctl start NetworkManager.service
-$ nmcli device wifi connect '<Network>' password <password>
+# systemctl enable netctl-auto@wlp0s20f3.service
 ```
 
-Install ssh so I can update this README from the MateBook.
-(git is also required, but etckeeper pulled that in)
-```
-# pacman -S openssh
-```
+> netctl profiles will be started/stopped automatically as you move from the range of one network into the range of another network (roaming). 
 
 ## Get X11 Working
 
-Install X11, i3wm, lightdm, and a few other nice things
+Install X11, bspwm, and a few other nice things
 ```
-# pacman -S i3 nvidia xorg-server xorg-font-util xorg-fonts-75dpi 
-# pacman -S xorg-fonts-100dpi xorg-mkfontdir xorg-mkfontscale xorg-xdpyinfo 
-# pacman -S xorg-xrandr xorg-xset bumblebee bbswitch
-# pacman -S lightdm lightdm-gtk-greeter termite
-# pacman -S firefox mesa xf86-video-intel
-# pacman -S network-manager-applet
-# pacman -S xbindkeys xorg-xmodmap xorg-xrdb
+# pacman -S bspwm sxhkd nvidia xorg-server xorg-font-util xorg-fonts-75dpi xorg-fonts-100dpi xorg-mkfontdir xorg-mkfontscale xorg-xdpyinfo xorg-xrandr xorg-xset bumblebee bbswitch termite firefox mesa xf86-video-intel xbindkeys xorg-xmodmap xorg-xrdb
 ```
 
 Enable Bumblebee with bbswitch for Nvidia / Intel switching
@@ -365,69 +283,39 @@ Enable Bumblebee with bbswitch for Nvidia / Intel switching
 # gpasswd -a $USER bumblebee
 ```
 
-## Neovim and Shell Setup
+## Other useful app
+Few apps I need :
 
 ```
-# pacman -S neovim zsh python3 python-neovim
+# pacman -S zsh vim git compton xorg-xinit python-pip python2 light openssh pass polybar rofi randr xorg-xsetroot feh noto-fonts-cjk arc-gtk-theme thunar lxappearance vlc gvfs thunar-archive-plugin thunar-volman tumbler raw-thumbnailer gvfs-mtp gpicview xorg-xkill exa bat xss-lock xautolock autocutsel dunst ncdu chromium unzip zip p7zip pacman-contrib tldr xdg-user-dirs scrot xclip blueman
+
 ```
 ## Setup my dot files, includes x11, nvim and zsh configs
-Install my homshick setup [github.com/kelp/dotfiles](https://github.com/kelp/dotfiles)
+Install my homshick setup [github.com/hg8/dotfiles](https://github.com/hg8/dotfiles)
 
-Install YaY to build packages from Arch AUR
+Install Trizen to build packages from Arch AUR
 
 ```
-$ git clone https://aur.archlinux.org/yay.git
-$ cd yay
+$ git clone https://aur.archlinux.org/trizen.git
+$ cd trizen
 $ makepkg -si
 ```
 
-Install things needed for my custom i3 setup. For bumblebee-status
-I use the git version because it has a bug fix I sent upstream.
+## Automatically startx at user login
+
+Edit your `~/.profile` (`~/.zprofile` for zsh users) with:
 
 ```
-$ yay bumblebee-status
-# pacman -S dmenu feh pacman-contrib python-dbus
+$ cat .zprofile                  
+if [[ ! $DISPLAY && $XDG_VTNR -eq 1 ]]; then
+  exec startx
+fi
 ```
-
-A few more things to make X happy.
-
-`# pacman -S xss-lock compton redshift`
-
-Redshift configs come from [github.com/kelp/redshift](https://github.com/kelp/redshift)
-
-Install Nerd Fonts Complete, these are used by my terminal, required for my 
-nvim and shell config
-
-`$ yay nerd-fonts-complete`
-
-Screen locking with Google's
-
-`$ yay xsecurelock`
-Depends on my .xprofile, which I swiched to use xsecurelock
-
-Install xscreensaver
-
-`# pacman -S xscreensaver`
-
-## Start LightDM
-At this point X11 should work, and we can use it, though we'll still be tweaking
-a bunch of things.
-
-`# systemctl start lightdm`
-
-Now login to X11!
 
 ## Make Pacman faster
 
 Sort the pacman mirrors by speed
 [Arch Wiki Sorting Mirrors](https://wiki.archlinux.org/index.php/mirrors#Sorting_mirrors)
-
-Install gnome-keyring to manage ssh keys
-
-`# pacman -S gnome-keyring`
-
-Set it up with the PAM method for console. LightDM should handle it for X11
-[Arch Wiki Gnome Keyring](https://wiki.archlinux.org/index.php/GNOME/Keyring#PAM_method)
 
 
 ## Setup the Linux Console
@@ -440,21 +328,6 @@ Create `/etc/vconsole.conf` with contents:
 
 `FONT=ter-132n`
 
-Then add 'i915' to MODULES and 'consolefont' to the HOOKS section of 
-/etc/mkinitcpio.conf:
-```
-MODULES=(i915 ext4)
-...
-HOOKS=(base udev autodetect consolefont modconf block lvm2 resume filesystems keyboard fsck)
-```
-And run: 
-
-`# mkinitcpio -p linux`
-
-If i915 isn't added here, when you reboot, you'll see the new conole font
-briefly and then it will reset to the tiny ones.
-
-At this point I rebooted again to test all this out.
 
 ## Configure the Trackpad
 
@@ -492,10 +365,11 @@ EndSection
 
 ## Hibernate on Low Battery
 
-From: [Arch Wiki Touchpad](https://wiki.archlinux.org/index.php/Laptop#Touchpad)
-Hibernate on low battery to '/etc/udev/rules.d/99-lowbat.rules'
-```# Suspend the system when battery level drops to 5% or lower
-SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="[0-5]", RUN+="/usr/bin/systemctl hibernate"
+Suspend on low battery to '/etc/udev/rules.d/99-lowbat.rules'
+```
+$ cat /etc/udev/rules.d/99-lowbat.rules         
+# Suspend the system when battery level drops to 5% or lower
+SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="[0-5]", RUN+="/usr/bin/systemctl suspend"
 
 ```
 
@@ -513,110 +387,56 @@ Then start it:
 `# timedatectl set-ntp true `
 
 
-## Setup lightdm and slick-greeter
-
-Install lightdm-slick-greeter and lightdm-settings
-
-```
-$ yay lightdm-slick-greeter 
-$ yay lightdm-settings
-```
-
-LightDM config `/etc/lighdm/lightdm.conf`:
-```
-[Seat:*]
-greeter-session=lightdm-slick-greeter
-```
-
-Slick Greeter Config `/etc/lightdm/slick-greeter.conf`:
-```
-[Greeter]
-background = /usr/share/slick-greeter/arch-2560x1600.png
-show-hostname = true
-show-power = true
-show-click = true
-show-quit = true
-show-a11y = false
-draw-grid = false
-show-keyboard= false
-draw-user-backgrounds = false
-```
-
-Make the 'Dynamic User' stop showing up on the login screen, by updating
-`/etc/lightdm/users.conf` to exclude users with `/sbin/nologin` as their shell
-
-`hidden-shells=/bin/false /usr/bin/nologin /sbin/nologin`
-
-Setup Plymouth
-Following instructions from [Arch Wiki Plymouth](https://wiki.archlinux.org/index.php/plymouth)
-
-```
-$ yay plymouth 
-$ yay plymouth-theme-arch-breeze-git
-```
-
-Set the theme in `/etc/plymouth/plymouthd.conf`
-
-```
-[Daemon]
-Theme=arch-breeze
-ShowDelay=5
-DeviceTimeout=5
-```
-
-Disable lightdm systemd unit and enable the lightdm-plymouth unit.
-
-```
-# systemctl disable lightdm.service
-# systemctl enable lightdm-plymouth.service
-```
-
-Install ttf-dejavu fonts, Plymouth needs this, mkinitcpio will fail without it
-
-`$ pacman -S ttf-dejavu`
-
-Add Plymouth requirements to `/etc/mkinitcpio.conf`. The plymouth-encrypt
-is required when running disk encryption. I couldn't boot the first time through
-because I missed that.
-
-```
-HOOKS=(base udev plymouth consolefont autodetect modconf block plymouth-encrypt lvm2 resume filesystems keyboard fsck)
-```
-
-Run mkinitcpio
-
-`# mkinitcpio -p linux`
-
 ## Make Sound Work
 
 This took some experimenting. At first all the speakers didn't work
 and it sounded horrible.
 
-First I installed these packages
+1. Install needed packages
 
-`# pacman -S alsa-utils pulseaudio pulseaudio-alsa alsa-tools pavucontrol pulsemixer`
+   `$ sudo pacman -S alsa-utils pulseaudio pulseaudio-alsa alsa-tools pavucontrol pulsemixer`
 
-Then followed instructions at the bottom of [Ayman Bagabas Blog](https://aymanbagabas.com/2018/07/23/archlinux-on-matebook-x-pro.html)
+2. Use `hdajackretask` as root to apply to correct config
 
-I also referenced this [imgur](https://imgur.com/a/N1xsCVZ) and
-this [Reddit Thread](https://www.reddit.com/r/MatebookXPro/comments/8z4pv7/fix_for_the_2_out_of_4_speakers_issue_on_linux/)
+   `$ sudo hdajackretask`
 
-I ended up having to run `hdajackretask` as root from a terminal to get it
-to apply the configs properly. It creates `hda-jack-retask.conf`
-and `/usr/lib/firmware/hda-jack-retask.fw`. I also had to set 'Connectivity'
-to 'Internal' for both pins.  Once I did that, and rebooted, I was able
-to run `pavucontrol` and chose 'Analog Surround 4.0 Output' from the
-Configuration tab. And then on the Output Devices tab, I could unlock
-channels and verify that all 4 speakers were working, and control volume
-for each.
+3. Select `Realtek ALC256` codec on the top.
+
+4. Check the `Show unconnected pins` and `Advanced overrides` options on right.
+
+5. Apply the following configuration for `PIN ID: 0x14`
+
+   ![2019-05-22-081324_1261x347_scrot](https://user-images.githubusercontent.com/9076747/58158269-9e414a00-7c69-11e9-824b-fc08df81903e.png)
+   
+6. Apply the following configuration for `PIN ID: 0x1b`
+
+   ![2019-05-22-081708_1284x360_scrot](https://user-images.githubusercontent.com/9076747/58158467-042dd180-7c6a-11e9-9dca-8780d98f6a6a.png)
+   
+7. Select <kbd>Install boot override</kbd>
+
+8. Since we have full disk encryption we need to edit our `/etc/mkiniticpio.conf` with:
+
+   `FILES=(/usr/lib/firmware/hda-jack-retask.fw)`
+   
+9. Recreate your initramfs:
+
+   `sudo mkinitcpio -P`
+   
+10. Reboot
+
+11. Open `pavucontrol`, navigate to `Configuration` and under `Profile` dropdown, select `Analog Surround 4.0 Output`.
+
+([Source](https://www.reddit.com/r/MatebookXPro/comments/8z4pv7/fix_for_the_2_out_of_4_speakers_issue_on_linux/) & [Source](https://aymanbagabas.com/2018/07/23/archlinux-on-matebook-x-pro.html))
+
+
 
 ## Make the Volume and Screen Brighness Buttons Work
 Instructions generally came from 
 [Arch Wiki Xbindkeys](https://wiki.archlinux.org/index.php/Xbindkeys)
 
-To set the backlight we need xbacklight
+To set the backlight we need `light`
 
-`# pacman -S xorg-xbacklight`
+`# pacman -S light`
 
 We'll need xbindkeys
 ```
@@ -624,84 +444,33 @@ We'll need xbindkeys
 $ xbindkeys -d > ~/.xbindkeysrc
 ```
 
-This is pulled in from my homeshick x11 castle, but
-documenting it here for others.
-
-Add these to `$HOME/.xbindkeysrc`:
-```
-# Increase volume
-"pactl set-sink-volume @DEFAULT_SINK@ +1000"
-   XF86AudioRaiseVolume
-
-# Decrease volume
-"pactl set-sink-volume @DEFAULT_SINK@ -1000"
-   XF86AudioLowerVolume
-
-# Mute volume
-"pactl set-sink-mute @DEFAULT_SINK@ toggle"
-   XF86AudioMute
-
-# Increase backlight
-"xbacklight -inc 10"
-   XF86MonBrightnessUp
-
-# Decrease backlight
-"xbacklight -dec 10"
-   XF86MonBrightnessDown
-```
-
-Make backlight changes work, create `/etc/X11/xorg.conf.d/20-intel.conf`
-with contents:
-```
-Section "Device"
-    Identifier  "Card0"
-    Driver      "intel"
-    Option      "Backlight"  "intel_backlight"
-EndSection
-```
-And then restart X or reboot.
-
-
-## Install a Decent Theme for rEFInd
-`$ yay refind-theme-regular`
-
-I also decided I didn't like the bright white background of that theme, so I
-edited the theme config `/boot/EFI/refind/refind-theme-regular/theme.conf` 
-and swapped in an all black 32x32 pixel png for the background. I got the 
-image from [dummyimage](https://dummyimage.com/32x32/000/000000)
-
-Add the theme config to the bottom of `/boot/EFI/refind/refind.conf`
+Here is an example on how to use it :
 
 ```
-include refind-theme-regular/theme.conf
+XF86AudioRaiseVolume
+    pactl set-sink-volume @DEFAULT_SINK@ -1000
+
+
+XF86AudioLowerVolume
+    pactl set-sink-volume @DEFAULT_SINK@ -1000
+
+
+XF86AudioMute
+    pactl set-sink-mute @DEFAULT_SINK@ toggle
+   
+XF86MonBrightnessUp
+    light -A 10
+  
+
+XF86MonBrightnessDown
+    light -U 10
 ```
 
-Get the pacman hook setup to install rEFInd on the EFI partition on upgrade
-follow the [Arch Wiki reFIND Pacman Hook](https://wiki.archlinux.org/index.php/REFInd#Pacman_hook)
+You can also use my script [brightness](https://github.com/hg8/dotfiles/blob/master/bin/brightness) and [volume](https://github.com/hg8/dotfiles/blob/master/bin/volume) to show notifcations on volume and brightness change unsing dunst
 
-## Clipboard Manager
-`# pacman -S autocutsel`
+![2019-05-22-082913_373x102_scrot](https://user-images.githubusercontent.com/9076747/58159341-cf227e80-7c6b-11e9-90b0-59f394ac3e93.png)
+![2019-05-22-082926_356x102_scrot](https://user-images.githubusercontent.com/9076747/58159343-cfbb1500-7c6b-11e9-9aad-7d8ba1d858b9.png)
 
-And I added the following to my `.xprofile`
-```
-autocutsel -fork &
-autocutsel -selection PRIMARY -fork &
-```
 
-## Other Packages
 
-Other packages I install:
-```
-# pacman -S bc unzip mlocate perl-anyevent-i3
-```
-
-And that's it! (aside from a few TODOs I met get to below)
-
-## TODO
-* https://bentley.link/secureboot/
-* https://wiki.archlinux.org/index.php/Secure_Boot
-* https://wiki.archlinux.org/index.php/HiDPI
-* Make plymouth and slickgreeter have the same background for a consistent 
-  boot experience
-* Setup Dunst or similar to show notifcations on volume and brightness change
-    https://wiki.archlinux.org/index.php/Dunst
+(_based on [@kelp](kelp/arch-matebook-x-pro) work for the 2018 version_)
