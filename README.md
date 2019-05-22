@@ -1,60 +1,31 @@
 Table of Contents
 =================
 
-   * [Arch Install Notes](#arch-install-notes)
-      * [Getting Started](#getting-started)
-   * [Booting into the Base Install](#booting-into-the-base-install)
-      * [Make an Arch Boot USB Key](#make-an-arch-boot-usb-key)
-      * [Boot from USB](#boot-from-usb)
-      * [Make Fonts Readable and Get Online](#make-fonts-readable-and-get-online)
-      * [Partition and Format](#partition-and-format)
-      * [Setup Disk Encryption](#setup-disk-encryption)
-      * [Basic Configs for the New Install](#basic-configs-for-the-new-install)
-      * [Make the system bootable](#make-the-system-bootable)
-   * [Post Install Config](#post-install-config)
-      * [Create a regular user](#create-a-regular-user)
-      * [Setup power saving](#setup-power-saving)
-      * [Get X11 Working](#get-x11-working)
-      * [Setup my dot files, includes x11, nvim and zsh configs](#setup-my-dot-files-includes-x11-nvim-and-zsh-configs)
-      * [Make Pacman faster](#make-pacman-faster)
-      * [Setup the Linux Console](#setup-the-linux-console)
-      * [Configure the Trackpad](#configure-the-trackpad)
-      * [Hibernate on Low Battery](#hibernate-on-low-battery)
-      * [Time Sync](#time-sync)
-      * [Make Sound Work](#make-sound-work)
-      * [Make the Volume and Screen Brighness Buttons Work](#make-the-volume-and-screen-brighness-buttons-work)
-      * [TODO](#todo)
+# Arch Linux on Huawei Matebook X Pro 2019
 
-# Arch Install Notes
-Installing Arch Linux on the Huawei MateBook Pro X 2019 with Full Disk Encryption.
+Installation of Arch Linux on the Huawei MateBook Pro X 2019 with Full Disk Encryption.
 
 This was done with a new Huawei MateBook Pro X 2019 Intel Core i7-8565U, 8GB RAM, 512GB SSD. Delivered on 2019/05/19.
 
-## Getting Started
-I booted into Windows 10 once, and let it go through it's whole setup
-only so I could update the BIOS.
 
-In the future BIOS updates can be done using [the following method](https://github.com/nekr0z/linux-on-huawei-matebook-13-2019#bios-updates).
+## Installation
+### Update BIOS if possible
 
-Note that it would maybe be safer (no messing up with UEFI boot record) to use a Win2Go USB key to update BIOS.
+Boot into Windows 10 once, and let it go through it's whole setup so you can update the BIOS.
 
-Will report after my personal tries.
+### Create an Arch Boot USB Key
 
-# Booting into the Base Install
-
-## Make an Arch Boot USB Key
 Download the [Arch ISO](https://www.archlinux.org/download/)
 
-I burned it to a [UBS Key](https://wiki.archlinux.org/index.php/USB_flash_installation_media) like this:
+Burned it to a [UBS Key](https://wiki.archlinux.org/index.php/USB_flash_installation_media) like so:
 
 ```
 $ sudo dd bs=4M if=path/to/archlinux.iso of=/dev/sdx status=progress oflag=sync
-
 ```
 
 If on Windows you can use [Rufus](http://rufus.ie/) which worked great everytimes I tried.
 
-## Boot from USB
+### Boot from USB
 
 To access the Boot menu, first disable Secure Boot in the BIOS (Enter with <kbd>F12</kbd>). 
 
@@ -63,12 +34,15 @@ To access the Boot menu, first disable Secure Boot in the BIOS (Enter with <kbd>
 Then hold down <kbd>F2</kbd> while booting to enter the BIOS device selection and choose your Arch USB.
 
 
-## Make Fonts Readable and Get Online
+### Make Fonts Readable
 
 Make the console font larger so it's readable, we'll set a permanent font 
 later:
 
 `# setfont latarcyrheb-sun32`
+
+
+### Connect to internet
 
 Most of this next part is from the [Arch Install Guide](https://wiki.archlinux.org/index.php/Installation_guide)
 
@@ -82,55 +56,95 @@ Update the system clock
 
 `# timedatectl set-ntp true`
 
-## Partition and Format
+### Partition and Format
 
 This install will use full disk encryption, with the exception of the EFI
 boot partition. 
 
-https://gist.github.com/heppu/6e58b7a174803bc4c43da99642b6094b
+```
+gdisk /dev/nvme0n1
+```
 
-@todo
+```
+GPT fdisk (gdisk) version 1.0.1
+
+Command (? for help): o
+This option deletes all partitions and creates a new protective MBR.
+Proceed? (Y/N): Y
+
+Command (? for help): n
+Partition number (1-128, default 1): 
+First sector (34-242187466, default = 2048) or {+-}size{KMGTP}: 
+Last sector (2048-242187466, default = 242187466) or {+-}size{KMGTP}: +512M
+Current type is 'Linux filesystem'
+Hex code or GUID (L to show codes, Enter = 8300): EF00
+Changed type of partition to 'EFI System'
+
+Command (? for help): n
+Partition number (2-128, default 2): 
+First sector (34-242187466, default = 1050624) or {+-}size{KMGTP}: 
+Last sector (1050624-242187466, default = 242187466) or {+-}size{KMGTP}: 
+Current type is 'Linux filesystem'
+Hex code or GUID (L to show codes, Enter = 8300): 
+Changed type of partition to 'Linux filesystem'
+
+Command (? for help): p
+Disk /dev/sda: 242187500 sectors, 115.5 GiB
+Logical sector size: 512 bytes
+Disk identifier (GUID): 9FB9AC2C-8F29-41AE-8D61-21EA9E0B4C2A
+Partition table holds up to 128 entries
+First usable sector is 34, last usable sector is 242187466
+Partitions will be aligned on 2048-sector boundaries
+Total free space is 2014 sectors (1007.0 KiB)
+
+Number  Start (sector)    End (sector)  Size       Code  Name
+   1            2048         1050623   512.0 MiB   EF00  EFI System
+   2         1050624       242187466   115.0 GiB   8300  Linux filesystem
+
+Command (? for help): w
+```
 
 
-## Setup Disk Encryption
+### Setup Disk Encryption
+
 I chose the realtively simple LVM on LUKS setup combining instructions from:
 [Encrypting_an_entire_system](https://wiki.archlinux.org/index.php/Dm-crypt/Encrypting_an_entire_system#LVM_on_LUKS)
 
-There will be a single LUKS2 volume with LVM on top. LVM will then divide
-that volume into root, home and swap.
+There will be a single LUKS2 volume with LVM on top. LVM will then divide that volume into `root`, `home` and `swap`.
 
 Setup and open the LUKS2 volume
 
 ```
 # cryptsetup luksFormat --type luks2 /dev/nvme0n1p2
-# cryptsetup open /dev/nvme0n1p2 cryptlvm
+# cryptsetup open /dev/nvme0n1p2 S3V0
 ```
 
 Setup LVM, with swap at least as large as RAM to support hibernate
 
 ```
-# pvcreate /dev/mapper/cryptlvm
-# vgcreate archvg /dev/mapper/cryptlvm
-# lvcreate -L 16G archvg -n swap
-# lvcreate -L 64G archvg -n root
-# lvcreate -l 100%FREE archvg -n home
+# pvcreate /dev/mapper/S3V0
+# vgcreate archvg /dev/mapper/S3V0
+# lvcreate -L 16G S3V0 -n swap
+# lvcreate -L 64G S3V0 -n root
+# lvcreate -l 100%FREE S3V0 -n home
 ```
 
 Format the filesystems
 
 ```
-# mkfs.ext4 /dev/archvg/root
-# mkfs.ext4 /dev/archvg/home
-# mkswap /dev/archvg/swap
+# mkfs.vfat -F32 /dev/nvme0n1p1
+# mkfs.ext4 /dev/S3V0/root
+# mkfs.ext4 /dev/S3V0/home
+# mkswap /dev/S3V0/swap
 ```
 
 Mount the partitions
 
 ```
-# mount /dev/archvg/root /mnt
+# mount /dev/S3V0/root /mnt
 # mkdir /mnt/home
-# mount /dev/archvg/home /mnt/home
-# swapon /dev/archvg/swap
+# mount /dev/S3V0/home /mnt/home
+# swapon /dev/S3V0/swap
 ```
 
 Mount the boot/ESP volume
@@ -148,7 +162,8 @@ Generate the fstab
 
 `# genfstab -U /mnt >> /mnt/etc/fstab`
 
-## Basic Configs for the New Install
+### Basic Configuration
+
 This is mostly straight from the [Arch Wiki Installation Guide](https://wiki.archlinux.org/index.php/Installation_guide)
 
 Chroot to the new arch install
@@ -174,7 +189,7 @@ Set a hostname
 
 `# echo marchbook >> /etc/hostname`
 
-## Make the system bootable
+### Make the system bootable
 
 Install Intel Microcode Updates, this will install an initrd image that 
 we add to our boot loader config.
@@ -183,7 +198,7 @@ we add to our boot loader config.
 
 Next setup systemd-boot
 
-@todo
+`bootctl --path=/boot install`
 
 Get the encrypted volume UUID for use in the systemd-boot config.
 
@@ -233,14 +248,23 @@ Reboot
 # reboot
 ```
 
-# Post Install Config
+## Post Install Configuration
+### Connect to internet
 
-Get wifi back online after first boot. We'll change how this is configured
-later.
+Get wifi back online after first boot. 
 
 `# wifi-menu`
 
-## Create a regular user
+Get networking to come up automatically with `netctl`
+
+```
+# systemctl enable netctl-auto@wlp0s20f3.service
+```
+
+> netctl profiles will be started/stopped automatically as you move from the range of one network into the range of another network (roaming). 
+
+
+### Create a regular user
 ```
 # useradd -G wheel -m hugo
 # passwd hugo
@@ -263,16 +287,13 @@ Install ethtool, lsb-release and smartmontools at the suggestion of tlp-stat
 
 `# pacman -S ethtool lsb-release smartmontools`
 
-Get networking to come up automatically with `netctl`
-```
-# systemctl enable netctl-auto@wlp0s20f3.service
-```
 
-> netctl profiles will be started/stopped automatically as you move from the range of one network into the range of another network (roaming). 
+### Get X11 Working
 
-## Get X11 Working
+_This configuration is fitted to me, update it according to your needs_
 
 Install X11, bspwm, and a few other nice things
+
 ```
 # pacman -S bspwm sxhkd nvidia xorg-server xorg-font-util xorg-fonts-75dpi xorg-fonts-100dpi xorg-mkfontdir xorg-mkfontscale xorg-xdpyinfo xorg-xrandr xorg-xset bumblebee bbswitch termite firefox mesa xf86-video-intel xbindkeys xorg-xmodmap xorg-xrdb
 ```
@@ -283,15 +304,20 @@ Enable Bumblebee with bbswitch for Nvidia / Intel switching
 # gpasswd -a $USER bumblebee
 ```
 
-## Other useful app
+### Other useful app
+
 Few apps I need :
 
 ```
 # pacman -S zsh vim git compton xorg-xinit python-pip python2 light openssh pass polybar rofi randr xorg-xsetroot feh noto-fonts-cjk arc-gtk-theme thunar lxappearance vlc gvfs thunar-archive-plugin thunar-volman tumbler raw-thumbnailer gvfs-mtp gpicview xorg-xkill exa bat xss-lock xautolock autocutsel dunst ncdu chromium unzip zip p7zip pacman-contrib tldr xdg-user-dirs scrot xclip blueman
 
 ```
-## Setup my dot files, includes x11, nvim and zsh configs
+
+### Setup my dot files
+
 Install my homshick setup [github.com/hg8/dotfiles](https://github.com/hg8/dotfiles)
+
+### Install a AUR Helper
 
 Install Trizen to build packages from Arch AUR
 
@@ -301,7 +327,7 @@ $ cd trizen
 $ makepkg -si
 ```
 
-## Automatically startx at user login
+### Automatically startx at user login
 
 Edit your `~/.profile` (`~/.zprofile` for zsh users) with:
 
@@ -312,13 +338,15 @@ if [[ ! $DISPLAY && $XDG_VTNR -eq 1 ]]; then
 fi
 ```
 
-## Make Pacman faster
+### Make Pacman faster
 
 Sort the pacman mirrors by speed
 [Arch Wiki Sorting Mirrors](https://wiki.archlinux.org/index.php/mirrors#Sorting_mirrors)
 
 
-## Setup the Linux Console
+## Various configurations
+
+### Setup the Linux Console font for HiDPi
 
 Set a readable console font:
 
@@ -329,7 +357,7 @@ Create `/etc/vconsole.conf` with contents:
 `FONT=ter-132n`
 
 
-## Configure the Trackpad
+### Configure the Trackpad
 
 Info from: [Linux with a Macbook Touchpad Feel, Pt 2](https://williambharding.com/blog/linux-to-macbook/linux-with-a-macbook-touchpad-feel-pt-2/)
 I'm using Synamptics based on the recommendations from the above link.
@@ -363,7 +391,7 @@ Section "InputClass"
 EndSection
 ```
 
-## Hibernate on Low Battery
+### Hibernate on Low Battery
 
 Suspend on low battery to '/etc/udev/rules.d/99-lowbat.rules'
 ```
@@ -373,7 +401,7 @@ SUBSYSTEM=="power_supply", ATTR{status}=="Discharging", ATTR{capacity}=="[0-5]",
 
 ```
 
-## Time Sync
+### Time Sync
 
 Setup time sync
 [Arch Wiki Systemd-timesyncd](https://wiki.archlinux.org/index.php/Systemd-timesyncd)
@@ -387,50 +415,14 @@ Then start it:
 `# timedatectl set-ntp true `
 
 
-## Make Sound Work
 
-This took some experimenting. At first all the speakers didn't work
-and it sounded horrible.
+## Fixes
 
-1. Install needed packages
+### 4.0 Surround Speakers
 
-   `$ sudo pacman -S alsa-utils pulseaudio pulseaudio-alsa alsa-tools pavucontrol pulsemixer`
+To fix Huawei Matebook X Pro Speakers on Linux follow this [guide](https://github.com/hg8/arch-matebook-x-pro-2019/blob/master/guide-fix-matebook-x-pro-speakers-linux.md)
 
-2. Use `hdajackretask` as root to apply to correct config
-
-   `$ sudo hdajackretask`
-
-3. Select `Realtek ALC256` codec on the top.
-
-4. Check the `Show unconnected pins` and `Advanced overrides` options on right.
-
-5. Apply the following configuration for `PIN ID: 0x14`
-
-   ![2019-05-22-081324_1261x347_scrot](https://user-images.githubusercontent.com/9076747/58158269-9e414a00-7c69-11e9-824b-fc08df81903e.png)
-   
-6. Apply the following configuration for `PIN ID: 0x1b`
-
-   ![2019-05-22-081708_1284x360_scrot](https://user-images.githubusercontent.com/9076747/58158467-042dd180-7c6a-11e9-9dca-8780d98f6a6a.png)
-   
-7. Select <kbd>Install boot override</kbd>
-
-8. Since we have full disk encryption we need to edit our `/etc/mkiniticpio.conf` with:
-
-   `FILES=(/usr/lib/firmware/hda-jack-retask.fw)`
-   
-9. Recreate your initramfs:
-
-   `sudo mkinitcpio -P`
-   
-10. Reboot
-
-11. Open `pavucontrol`, navigate to `Configuration` and under `Profile` dropdown, select `Analog Surround 4.0 Output`.
-
-([Source](https://www.reddit.com/r/MatebookXPro/comments/8z4pv7/fix_for_the_2_out_of_4_speakers_issue_on_linux/) & [Source](https://aymanbagabas.com/2018/07/23/archlinux-on-matebook-x-pro.html))
-
-
-
-## Make the Volume and Screen Brighness Buttons Work
+### Volume and Screen Brighness Buttons Work
 Instructions generally came from 
 [Arch Wiki Xbindkeys](https://wiki.archlinux.org/index.php/Xbindkeys)
 
@@ -470,6 +462,17 @@ You can also use my script [brightness](https://github.com/hg8/dotfiles/blob/mas
 
 ![2019-05-22-082913_373x102_scrot](https://user-images.githubusercontent.com/9076747/58159341-cf227e80-7c6b-11e9-90b0-59f394ac3e93.png)
 ![2019-05-22-082926_356x102_scrot](https://user-images.githubusercontent.com/9076747/58159343-cfbb1500-7c6b-11e9-9aad-7d8ba1d858b9.png)
+
+## Maintenance 
+### BIOS Updates
+
+Huawei provides downloadable BIOS updates packaged for Windows. With some effort, these can be installed from Linux.
+
+[The following method is available](https://github.com/nekr0z/linux-on-huawei-matebook-13-2019#bios-updates).
+
+Note that it would maybe be safer (no messing up with UEFI boot record) to use a Win2Go USB key to update BIOS.
+
+Will report after my personal tries.
 
 
 
