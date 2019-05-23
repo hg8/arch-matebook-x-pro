@@ -1,6 +1,3 @@
-Table of Contents
-=================
-
 # Arch Linux on Huawei Matebook X Pro 2019
 
 Installation of Arch Linux on the Huawei MateBook Pro X 2019 with Full Disk Encryption.
@@ -355,6 +352,15 @@ Set a readable console font:
 Create `/etc/vconsole.conf` with contents:
 
 `FONT=ter-132n`
+
+### Setup user dirs
+
+Setup basic user directories (Documents, Pictures, etc...)
+
+```
+sudo pacman -S xdg-user-dirs
+xdg-user-dirs-update
+```
 
 
 ### Configure the Trackpad
