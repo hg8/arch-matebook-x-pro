@@ -39,4 +39,6 @@ Out of the box Linux install only 2 out of 4 speakers are working on the Mateboo
 
 11. Open `pavucontrol`, navigate to `Configuration` and under `Profile` dropdown, select `Analog Surround 4.0 Output`.
 
+    Or to achieve the same in terminal : `pactl set-card-profile 0 output:analog-surround-40`
+
 ([Source](https://www.reddit.com/r/MatebookXPro/comments/8z4pv7/fix_for_the_2_out_of_4_speakers_issue_on_linux/) & [Source](https://aymanbagabas.com/2018/07/23/archlinux-on-matebook-x-pro.html))
