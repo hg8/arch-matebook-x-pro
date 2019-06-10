@@ -226,6 +226,15 @@ Add the `keyboard`, `encrypt` and `lvm2` hooks to `/etc/mkinitcpio.conf`:
 HOOKS=(base udev autodetect keyboard keymap consolefont modconf block encrypt lvm2 filesystems fsck)
 ```
 
+Then setup KMS :
+
+> Kernel Mode Setting (KMS) is a method for setting display resolution and depth in the kernel space rather than user space. 
+> [Arch Linux Wiki](https://wiki.archlinux.org/index.php/Kernel_mode_setting)
+
+```
+MODULES=(... i915 ...)
+```
+
 Regnerate initramfs
 
 `# mkinitcpio -p linux `
